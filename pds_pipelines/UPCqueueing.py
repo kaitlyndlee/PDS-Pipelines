@@ -110,6 +110,7 @@ def main(archive, volume, search, log_level):
                 error_queue.QueueAdd(f'Unable to copy / queue {fname}: {e}')
                 logger.error('Unable to copy / queue %s: %s', fname, e)
 
+
         logger.info('Files Added to UPC Queue: %s', addcount)
 
     logger.info("UPC Processing successfully completed")
