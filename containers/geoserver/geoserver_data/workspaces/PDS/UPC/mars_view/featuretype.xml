@@ -1,0 +1,40 @@
+<featureType>
+  <id>FeatureTypeInfoImpl--223f5ea:16de0e78949:-7740</id>
+  <name>mars_view</name>
+  <nativeName>mars_view</nativeName>
+  <namespace>
+    <id>NamespaceInfoImpl-4f72e859:16de0e50720:-7ffb</id>
+  </namespace>
+  <title>mars_view</title>
+  <keywords>
+    <string>features</string>
+    <string>mars_view</string>
+  </keywords>
+  <srs>EPSG:404000</srs>
+  <nativeBoundingBox>
+    <minx>0.0</minx>
+    <maxx>360.0</maxx>
+    <miny>-88.5534601132578</miny>
+    <maxy>89.1101470268305</maxy>
+  </nativeBoundingBox>
+  <latLonBoundingBox>
+    <minx>0.0</minx>
+    <maxx>360.0</maxx>
+    <miny>-88.5534601132578</miny>
+    <maxy>89.1101470268305</maxy>
+    <crs>EPSG:4326</crs>
+  </latLonBoundingBox>
+  <projectionPolicy>FORCE_DECLARED</projectionPolicy>
+  <enabled>true</enabled>
+  <store class="dataStore">
+    <id>DataStoreInfoImpl--223f5ea:16de0e78949:-7ffb</id>
+  </store>
+  <serviceConfiguration>false</serviceConfiguration>
+  <maxFeatures>0</maxFeatures>
+  <numDecimals>0</numDecimals>
+  <padWithZeros>false</padWithZeros>
+  <forcedDecimal>false</forcedDecimal>
+  <overridingServiceSRS>false</overridingServiceSRS>
+  <skipNumberMatched>false</skipNumberMatched>
+  <circularArcPresent>false</circularArcPresent>
+</featureType>

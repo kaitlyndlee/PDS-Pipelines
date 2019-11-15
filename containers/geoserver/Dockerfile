@@ -21,5 +21,14 @@ RUN unzip ~/geoserver_download/geoserver-2.15.1-bin.zip -d /usr/share/geoserver
 # Set environment variable to the correct home
 ENV GEOSERVER_HOME="/usr/share/geoserver/geoserver-2.15.1/"
 
+
+COPY web.xml /usr/share/geoserver/geoserver-2.15.1/webapps/geoserver/WEB-INF/web.xml
+
 # Runs the geoserver startup.sh
 ENTRYPOINT ["/usr/share/geoserver/geoserver-2.15.1/bin/startup.sh"]
+
+# updates the web.xml file to allow for access to data by example website
+# is not working, returns a number correctly, but the file does not appear to be the new one
+#COPY geoserver_data/web.xml geoserver:/usr/share/geoserver/geoserver-2.15.1/webapps/geoserver/WEB-INF/web.xml
+#COPY web.xml geoserver:/usr/share/geoserver/geoserver-2.15.1/webapps/geoserver/WEB-INF/web.xml
+#COPY web.xml /usr/share/geoserver/geoserver-2.15.1/webapps/geoserver/WEB-INF/web.xml
