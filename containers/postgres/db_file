@@ -1,0 +1,586 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 9.6.12
+-- Dumped by pg_dump version 9.6.3
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: tiger; Type: SCHEMA; Schema: -; Owner: upcmgr
+--
+
+CREATE SCHEMA tiger;
+
+
+ALTER SCHEMA tiger OWNER TO upcmgr;
+
+--
+-- Name: tiger_data; Type: SCHEMA; Schema: -; Owner: upcmgr
+--
+
+CREATE SCHEMA tiger_data;
+
+
+ALTER SCHEMA tiger_data OWNER TO upcmgr;
+
+--
+-- Name: topology; Type: SCHEMA; Schema: -; Owner: upcmgr
+--
+
+CREATE SCHEMA topology;
+
+
+ALTER SCHEMA topology OWNER TO upcmgr;
+
+--
+-- Name: SCHEMA topology; Type: COMMENT; Schema: -; Owner: upcmgr
+--
+
+COMMENT ON SCHEMA topology IS 'PostGIS Topology schema';
+
+
+--
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+
+
+--
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
+--
+-- Name: fuzzystrmatch; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS fuzzystrmatch WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION fuzzystrmatch; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION fuzzystrmatch IS 'determine similarities and distance between strings';
+
+
+--
+-- Name: postgis; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION postgis; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION postgis IS 'PostGIS geometry, geography, and raster spatial types and functions';
+
+
+--
+-- Name: postgis_tiger_geocoder; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS postgis_tiger_geocoder WITH SCHEMA tiger;
+
+
+--
+-- Name: EXTENSION postgis_tiger_geocoder; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION postgis_tiger_geocoder IS 'PostGIS tiger geocoder and reverse geocoder';
+
+
+--
+-- Name: postgis_topology; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;
+
+
+--
+-- Name: EXTENSION postgis_topology; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION postgis_topology IS 'PostGIS topology spatial types and functions';
+
+
+SET search_path = public, pg_catalog;
+
+SET default_tablespace = '';
+
+SET default_with_oids = false;
+
+--
+-- Name: datafiles; Type: TABLE; Schema: public; Owner: upcmgr
+--
+
+CREATE TABLE datafiles (
+    upcid integer NOT NULL,
+    isisid character varying(256),
+    productid character varying(256),
+    source character varying(1024),
+    detached_label character varying(1024),
+    instrumentid integer,
+    targetid integer,
+    level character(1)
+);
+
+
+ALTER TABLE datafiles OWNER TO upcmgr;
+
+--
+-- Name: datafiles_upcid_seq; Type: SEQUENCE; Schema: public; Owner: upcmgr
+--
+
+CREATE SEQUENCE datafiles_upcid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE datafiles_upcid_seq OWNER TO upcmgr;
+
+--
+-- Name: datafiles_upcid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: upcmgr
+--
+
+ALTER SEQUENCE datafiles_upcid_seq OWNED BY datafiles.upcid;
+
+
+--
+-- Name: instruments; Type: TABLE; Schema: public; Owner: upcmgr
+--
+
+CREATE TABLE instruments (
+    instrumentid integer NOT NULL,
+    instrument character varying(256) NOT NULL,
+    displayname character varying(256),
+    mission character varying(256),
+    spacecraft character varying(256),
+    description character varying(256)
+);
+
+
+ALTER TABLE instruments OWNER TO upcmgr;
+
+--
+-- Name: json_keywords; Type: TABLE; Schema: public; Owner: upcmgr
+--
+
+CREATE TABLE json_keywords (
+    upcid integer NOT NULL,
+    jsonkeywords jsonb
+);
+
+
+ALTER TABLE json_keywords OWNER TO upcmgr;
+
+--
+-- Name: search_terms; Type: TABLE; Schema: public; Owner: upcmgr
+--
+
+CREATE TABLE search_terms (
+    upcid integer NOT NULL,
+    processdate date without time zone,
+    starttime time without time zone,
+    solarlongitude double precision,
+    meangroundresolution double precision,
+    minimumemission double precision,
+    maximumemission double precision,
+    emissionangle double precision,
+    minimumincidence double precision,
+    maximumincidence double precision,
+    incidenceangle double precision,
+    minimumphase double precision,
+    maximumphase double precision,
+    phaseangle double precision,
+    targetid integer,
+    instrumentid integer,
+    missionid integer,
+    pdsproductid integer,
+    err_flag boolean,
+    isisfootprint geometry
+);
+
+
+ALTER TABLE search_terms OWNER TO upcmgr;
+
+--
+-- Name: targets; Type: TABLE; Schema: public; Owner: upcmgr
+--
+
+CREATE TABLE targets (
+    targetid integer NOT NULL,
+    naifid integer,
+    targetname character varying(20) NOT NULL,
+    system character varying(20) NOT NULL,
+    displayname character varying(20),
+    aaxisradius double precision,
+    baxisradius double precision,
+    caxisradius double precision,
+    description character varying(1024)
+);
+
+
+ALTER TABLE targets OWNER TO upcmgr;
+
+--
+-- Name: export_view; Type: VIEW; Schema: public; Owner: upcmgr
+--
+
+CREATE VIEW export_view AS
+ SELECT datafiles.upcid,
+    datafiles.isisid,
+    datafiles.productid,
+    datafiles.source,
+    datafiles.detached_label,
+    instruments.instrument,
+    targets.displayname,
+    instruments.mission,
+    instruments.spacecraft,
+    targets.targetname,
+    search_terms.isisfootprint,
+    json_keywords.jsonkeywords
+   FROM ((((datafiles
+     JOIN instruments ON ((datafiles.instrumentid = instruments.instrumentid)))
+     JOIN targets ON ((datafiles.targetid = targets.targetid)))
+     JOIN json_keywords ON ((datafiles.upcid = json_keywords.upcid)))
+     JOIN search_terms ON ((datafiles.upcid = search_terms.upcid)));
+
+
+ALTER TABLE export_view OWNER TO upcmgr;
+
+--
+-- Name: europa_view; Type: VIEW; Schema: public; Owner: upcmgr
+--
+
+CREATE VIEW europa_view AS
+ SELECT export_view.upcid,
+    export_view.isisid,
+    export_view.productid,
+    export_view.source,
+    export_view.detached_label,
+    export_view.instrument,
+    export_view.displayname,
+    export_view.mission,
+    export_view.spacecraft,
+    export_view.targetname,
+    export_view.isisfootprint,
+    export_view.jsonkeywords
+   FROM export_view
+  WHERE ((export_view.targetname)::text = 'EUROPA'::text);
+
+
+ALTER TABLE europa_view OWNER TO upcmgr;
+
+--
+-- Name: geoserver_view; Type: VIEW; Schema: public; Owner: upcmgr
+--
+
+CREATE VIEW geoserver_view AS
+ SELECT datafiles.upcid,
+    datafiles.isisid,
+    datafiles.productid,
+    datafiles.source,
+    datafiles.detached_label,
+    instruments.instrument,
+    targets.displayname,
+    instruments.mission,
+    instruments.spacecraft,
+    targets.targetname,
+    json_keywords.jsonkeywords
+   FROM (((datafiles
+     JOIN instruments ON ((datafiles.instrumentid = instruments.instrumentid)))
+     JOIN targets ON ((datafiles.targetid = targets.targetid)))
+     JOIN json_keywords ON ((datafiles.upcid = json_keywords.upcid)));
+
+
+ALTER TABLE geoserver_view OWNER TO upcmgr;
+
+--
+-- Name: instruments_instrumentid_seq; Type: SEQUENCE; Schema: public; Owner: upcmgr
+--
+
+CREATE SEQUENCE instruments_instrumentid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE instruments_instrumentid_seq OWNER TO upcmgr;
+
+--
+-- Name: instruments_instrumentid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: upcmgr
+--
+
+ALTER SEQUENCE instruments_instrumentid_seq OWNED BY instruments.instrumentid;
+
+
+--
+-- Name: io_view; Type: VIEW; Schema: public; Owner: upcmgr
+--
+
+CREATE VIEW io_view AS
+ SELECT export_view.upcid,
+    export_view.isisid,
+    export_view.productid,
+    export_view.source,
+    export_view.detached_label,
+    export_view.instrument,
+    export_view.displayname,
+    export_view.mission,
+    export_view.spacecraft,
+    export_view.targetname,
+    export_view.isisfootprint,
+    export_view.jsonkeywords
+   FROM export_view
+  WHERE ((export_view.targetname)::text = 'IO'::text);
+
+
+ALTER TABLE io_view OWNER TO upcmgr;
+
+--
+-- Name: json_keywords_upcid_seq; Type: SEQUENCE; Schema: public; Owner: upcmgr
+--
+
+CREATE SEQUENCE json_keywords_upcid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE json_keywords_upcid_seq OWNER TO upcmgr;
+
+--
+-- Name: json_keywords_upcid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: upcmgr
+--
+
+ALTER SEQUENCE json_keywords_upcid_seq OWNED BY json_keywords.upcid;
+
+
+--
+-- Name: mars_view; Type: VIEW; Schema: public; Owner: upcmgr
+--
+
+CREATE VIEW mars_view AS
+ SELECT export_view.upcid,
+    export_view.isisid,
+    export_view.productid,
+    export_view.source,
+    export_view.detached_label,
+    export_view.instrument,
+    export_view.displayname,
+    export_view.mission,
+    export_view.spacecraft,
+    export_view.targetname,
+    export_view.isisfootprint,
+    export_view.jsonkeywords
+   FROM export_view
+  WHERE ((export_view.targetname)::text = 'MARS'::text);
+
+
+ALTER TABLE mars_view OWNER TO upcmgr;
+
+--
+-- Name: moon_view; Type: VIEW; Schema: public; Owner: upcmgr
+--
+
+CREATE VIEW moon_view AS
+ SELECT export_view.upcid,
+    export_view.isisid,
+    export_view.productid,
+    export_view.source,
+    export_view.detached_label,
+    export_view.instrument,
+    export_view.displayname,
+    export_view.mission,
+    export_view.spacecraft,
+    export_view.targetname,
+    export_view.isisfootprint,
+    export_view.jsonkeywords
+   FROM export_view
+  WHERE ((export_view.targetname)::text = 'MOON'::text);
+
+
+ALTER TABLE moon_view OWNER TO upcmgr;
+
+--
+-- Name: search_terms_upcid_seq; Type: SEQUENCE; Schema: public; Owner: upcmgr
+--
+
+CREATE SEQUENCE search_terms_upcid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE search_terms_upcid_seq OWNER TO upcmgr;
+
+--
+-- Name: search_terms_upcid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: upcmgr
+--
+
+ALTER SEQUENCE search_terms_upcid_seq OWNED BY search_terms.upcid;
+
+
+--
+-- Name: targets_targetid_seq; Type: SEQUENCE; Schema: public; Owner: upcmgr
+--
+
+CREATE SEQUENCE targets_targetid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE targets_targetid_seq OWNER TO upcmgr;
+
+--
+-- Name: targets_targetid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: upcmgr
+--
+
+ALTER SEQUENCE targets_targetid_seq OWNED BY targets.targetid;
+
+
+--
+-- Name: datafiles upcid; Type: DEFAULT; Schema: public; Owner: upcmgr
+--
+
+ALTER TABLE ONLY datafiles ALTER COLUMN upcid SET DEFAULT nextval('datafiles_upcid_seq'::regclass);
+
+
+--
+-- Name: instruments instrumentid; Type: DEFAULT; Schema: public; Owner: upcmgr
+--
+
+ALTER TABLE ONLY instruments ALTER COLUMN instrumentid SET DEFAULT nextval('instruments_instrumentid_seq'::regclass);
+
+
+--
+-- Name: json_keywords upcid; Type: DEFAULT; Schema: public; Owner: upcmgr
+--
+
+ALTER TABLE ONLY json_keywords ALTER COLUMN upcid SET DEFAULT nextval('json_keywords_upcid_seq'::regclass);
+
+
+--
+-- Name: search_terms upcid; Type: DEFAULT; Schema: public; Owner: upcmgr
+--
+
+ALTER TABLE ONLY search_terms ALTER COLUMN upcid SET DEFAULT nextval('search_terms_upcid_seq'::regclass);
+
+
+--
+-- Name: targets targetid; Type: DEFAULT; Schema: public; Owner: upcmgr
+--
+
+ALTER TABLE ONLY targets ALTER COLUMN targetid SET DEFAULT nextval('targets_targetid_seq'::regclass);
+
+
+--
+-- Name: datafiles datafiles_pkey; Type: CONSTRAINT; Schema: public; Owner: upcmgr
+--
+
+ALTER TABLE ONLY datafiles
+    ADD CONSTRAINT datafiles_pkey PRIMARY KEY (upcid);
+
+
+--
+-- Name: instruments instruments_pkey; Type: CONSTRAINT; Schema: public; Owner: upcmgr
+--
+
+ALTER TABLE ONLY instruments
+    ADD CONSTRAINT instruments_pkey PRIMARY KEY (instrumentid);
+
+
+--
+-- Name: json_keywords json_keywords_pkey; Type: CONSTRAINT; Schema: public; Owner: upcmgr
+--
+
+ALTER TABLE ONLY json_keywords
+    ADD CONSTRAINT json_keywords_pkey PRIMARY KEY (upcid);
+
+
+--
+-- Name: search_terms search_terms_pkey; Type: CONSTRAINT; Schema: public; Owner: upcmgr
+--
+
+ALTER TABLE ONLY search_terms
+    ADD CONSTRAINT search_terms_pkey PRIMARY KEY (upcid);
+
+
+--
+-- Name: targets targets_pkey; Type: CONSTRAINT; Schema: public; Owner: upcmgr
+--
+
+ALTER TABLE ONLY targets
+    ADD CONSTRAINT targets_pkey PRIMARY KEY (targetid);
+
+
+--
+-- Name: idx_search_terms_isisfootprint; Type: INDEX; Schema: public; Owner: upcmgr
+--
+
+CREATE INDEX idx_search_terms_isisfootprint ON public.search_terms USING gist (isisfootprint);
+
+
+--
+-- Name: datafiles datafiles_instrumentid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: upcmgr
+--
+
+ALTER TABLE ONLY datafiles
+    ADD CONSTRAINT datafiles_instrumentid_fkey FOREIGN KEY (instrumentid) REFERENCES instruments(instrumentid);
+
+
+--
+-- Name: datafiles datafiles_targetid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: upcmgr
+--
+
+ALTER TABLE ONLY datafiles
+    ADD CONSTRAINT datafiles_targetid_fkey FOREIGN KEY (targetid) REFERENCES targets(targetid);
+
+
+--
+-- Name: search_terms search_terms_instrumentid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: upcmgr
+--
+
+ALTER TABLE ONLY search_terms
+    ADD CONSTRAINT search_terms_instrumentid_fkey FOREIGN KEY (instrumentid) REFERENCES instruments(instrumentid);
+
+
+--
+-- Name: search_terms search_terms_targetid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: upcmgr
+--
+
+ALTER TABLE ONLY search_terms
+    ADD CONSTRAINT search_terms_targetid_fkey FOREIGN KEY (targetid) REFERENCES targets(targetid);
+
+
+--
+-- PostgreSQL database dump complete
+--
+
